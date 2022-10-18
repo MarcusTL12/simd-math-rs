@@ -60,6 +60,7 @@ where
     (x - (n.cast()) * Simd::splat(a), n)
 }
 
+#[inline(always)]
 pub fn exp_pt1_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
@@ -75,6 +76,7 @@ where
     acc
 }
 
+#[inline(always)]
 pub fn powi_simd<const LANES: usize>(
     x: Simd<f64, LANES>,
     n: Simd<i32, LANES>,
@@ -97,6 +99,19 @@ where
     }
 
     acc
+}
+
+pub fn exp_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    const A: f64 = 0.2;
+    let (u, n) = periodic_clamp_simd(x, A);
+
+    let expu = exp_pt1_simd(u);
+    let fac = powi_simd(Simd::splat(EXP_PT2), n);
+
+    expu * fac
 }
 
 #[cfg(test)]
@@ -189,6 +204,39 @@ mod tests {
         let t = Instant::now();
         let y2 = powi_simd(Simd::from(x), Simd::from(n)).to_array();
         let t2 = t.elapsed();
+
+        let mut diff = [0.0; 8];
+        for (y, d) in y1.iter().zip(y2).map(|(a, b)| a - b).zip(&mut diff) {
+            *d = y;
+        }
+
+        let mut rdiff = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&y2).zip(&mut rdiff) {
+            *c = a / b;
+        }
+
+        println!("{y1:.5?} took {t1:?}\n{y2:.5?} took {t2:?}");
+        print_array(&diff);
+        print_array(&rdiff);
+    }
+
+    #[test]
+    fn test_exp_simd() {
+        let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
+
+        const ITERS: usize = 10000000;
+
+        let t = Instant::now();
+        let mut y1 = xs.map(|x| x.exp());
+        for _ in 1..ITERS {
+            y1 = xs.map(|x| x.exp());
+        }
+        let t1 = t.elapsed();
+        let mut y2 = exp_simd(Simd::from(xs)).to_array();
+        for _ in 1..ITERS {
+            y2 = exp_simd(Simd::from(xs)).to_array();
+        }
+        let t2 = t.elapsed() - t1;
 
         let mut diff = [0.0; 8];
         for (y, d) in y1.iter().zip(y2).map(|(a, b)| a - b).zip(&mut diff) {
