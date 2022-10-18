@@ -65,7 +65,7 @@ mod tests {
     fn test_exp() {
         let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
 
-        const ITERS: usize = 10000000;
+        const ITERS: usize = 1000000;
 
         let t = Instant::now();
         let mut y1 = xs.map(exp);
