@@ -1,18 +1,10 @@
 #![feature(portable_simd)]
 
-// use std::simd::{LaneCount, Simd, SupportedLaneCount};
+use std::simd::{LaneCount, Simd, SupportedLaneCount};
 
 const EXP_PT2: f64 = 1.2214027581601698;
 
-pub fn periodic_clamp(x: f64, a: f64) -> (f64, i32) {
-    let n = unsafe { (x / a + 0.5 * x.signum()).to_int_unchecked() };
-    (x - (n as f64) * a, n)
-}
-
-pub fn exp_pt1(x: f64) -> f64 {
-    let mut xn = x;
-    let mut acc = 1.0;
-    const FACT: [f64; 10] = [
+const INV_FAC: [f64; 10] = [
         1.0,
         0.5,
         0.16666666666666666,
@@ -25,8 +17,17 @@ pub fn exp_pt1(x: f64) -> f64 {
         2.755731922398589e-7,
     ];
 
-    for fac in FACT {
-        acc += xn * fac;
+pub fn periodic_clamp(x: f64, a: f64) -> (f64, i32) {
+    let n = unsafe { (x / a + 0.5 * x.signum()).to_int_unchecked() };
+    (x - (n as f64) * a, n)
+}
+
+pub fn exp_pt1(x: f64) -> f64 {
+    let mut xn = x;
+    let mut acc = 1.0;
+
+    for f in INV_FAC {
+        acc += xn * f;
         xn *= x;
     }
 
@@ -43,16 +44,16 @@ pub fn exp(x: f64) -> f64 {
     expu * fac
 }
 
-// pub fn exp_pt1_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
-// where
-//     LaneCount<LANES>: SupportedLaneCount,
-// {
-//     let mut xn = x;
-//     let acc = Simd::splat(0.0);
-//     // let mut fac = Simd
+pub fn exp_pt1_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let mut xn = x;
+    let acc = Simd::splat(0.0);
+    // let mut fac = Simd
 
-//     todo!()
-// }
+    todo!()
+}
 
 #[cfg(test)]
 mod tests {
