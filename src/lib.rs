@@ -1,3 +1,7 @@
+#![feature(portable_simd)]
+
+// use std::simd::{LaneCount, Simd, SupportedLaneCount};
+
 const EXP_PT2: f64 = 1.2214027581601698;
 
 pub fn periodic_clamp(x: f64, a: f64) -> (f64, i32) {
@@ -8,11 +12,21 @@ pub fn periodic_clamp(x: f64, a: f64) -> (f64, i32) {
 pub fn exp_pt1(x: f64) -> f64 {
     let mut xn = x;
     let mut acc = 1.0;
-    let mut fac = 1.0;
+    const FACT: [f64; 10] = [
+        1.0,
+        0.5,
+        0.16666666666666666,
+        0.041666666666666664,
+        0.008333333333333333,
+        0.001388888888888889,
+        0.0001984126984126984,
+        2.48015873015873e-5,
+        2.7557319223985893e-6,
+        2.755731922398589e-7,
+    ];
 
-    for i in 1..10 {
-        fac *= i as f64;
-        acc += xn / fac;
+    for fac in FACT {
+        acc += xn * fac;
         xn *= x;
     }
 
@@ -28,6 +42,17 @@ pub fn exp(x: f64) -> f64 {
 
     expu * fac
 }
+
+// pub fn exp_pt1_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+// where
+//     LaneCount<LANES>: SupportedLaneCount,
+// {
+//     let mut xn = x;
+//     let acc = Simd::splat(0.0);
+//     // let mut fac = Simd
+
+//     todo!()
+// }
 
 #[cfg(test)]
 mod tests {
@@ -65,7 +90,7 @@ mod tests {
     fn test_exp() {
         let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
 
-        const ITERS: usize = 1000000;
+        const ITERS: usize = 10000000;
 
         let t = Instant::now();
         let mut y1 = xs.map(exp);
