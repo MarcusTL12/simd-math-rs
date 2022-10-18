@@ -35,12 +35,28 @@ pub fn exp_pt1(x: f64) -> f64 {
     acc
 }
 
+pub fn powi(x: f64, n: i32) -> f64 {
+    let mut x = if n < 0 { x.recip() } else { x };
+    let mut n = n.abs();
+
+    let mut acc = 1.0;
+
+    while n != 0 {
+        acc = if n & 1 != 0 { acc * x } else { acc };
+
+        x *= x;
+        n >>= 1;
+    }
+
+    acc
+}
+
 pub fn exp(x: f64) -> f64 {
     const A: f64 = 0.2;
     let (u, n) = periodic_clamp(x, A);
 
     let expu = exp_pt1(u);
-    let fac = EXP_PT2.powi(n);
+    let fac = powi(EXP_PT2, n);
 
     expu * fac
 }
