@@ -101,6 +101,7 @@ where
     acc
 }
 
+#[inline(always)]
 pub fn exp_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
