@@ -1,5 +1,6 @@
 use std::simd::{
-    LaneCount, Simd, SimdFloat, SimdInt, SimdPartialEq, SupportedLaneCount,
+    LaneCount, Simd, SimdFloat, SimdInt, SimdPartialEq, StdFloat,
+    SupportedLaneCount,
 };
 
 const EXP_PT2: f64 = 1.2214027581601698;
@@ -67,7 +68,7 @@ where
     let mut acc = Simd::splat(1.0);
 
     for f in INV_FAC {
-        acc += xn * Simd::splat(f);
+        acc = xn.mul_add(Simd::splat(f), acc);
         xn *= x;
     }
 
