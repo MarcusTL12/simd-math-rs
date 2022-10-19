@@ -1,6 +1,9 @@
-use std::f64::consts::PI;
+use std::{
+    f64::consts::PI,
+    simd::{LaneCount, Simd, SimdPartialEq, StdFloat, SupportedLaneCount},
+};
 
-use crate::periodic_clamp;
+use crate::{periodic_clamp, periodic_clamp_simd};
 
 // Actual taylor coefficients
 const TAYLOR_COEFFS: [f64; 16] = [
@@ -21,38 +24,6 @@ const TAYLOR_COEFFS: [f64; 16] = [
     -8.111041997420425744716184137649729928232820623220406006172553528961e-12,
     -5.407361331613617163144122758433153285488547082146937337448369019307e-13,
 ];
-// Adjusted coefficients for better accuracy across the relevant interval
-// Found by matching the first 4 derivatives (+ constant) at the three points
-// [-π/4, 0, π/4]
-// const TAYLOR_COEFFS: [f64; 15] = [
-//     0.7071067811865476,
-//     0.7071067811865476,
-//     -0.3535533905932738,
-//     -0.11785113019775792,
-//     0.02946278254943948,
-//     0.005892556509840148,
-//     -0.0009820927516449947,
-//     -0.00014029896413393086,
-//     1.753737054091264e-5,
-//     1.9485954731631532e-6,
-//     -1.9485959433832494e-7,
-//     -1.771247677471614e-8,
-//     1.4760820807878849e-9,
-//     1.1189812082865404e-10,
-//     -8.007434599882055e-12,
-// ];
-
-// const TAYLOR_COEFFS: [f64; 9] = [
-//     -0.00018674129144960250147810671482280951737239745446659873935030,
-//     2.13070555710686364320941766164255816713103604831409716623819323120e-06,
-//     6.63302633312050570015643055502560394981142222531187848143404260316e-06,
-//     2.66196793492499333493375636648455569757062248991398931274590897114e-08,
-//     -1.11039255565993959195953786378812778607568383899905473324706196165e-07,
-//     -6.21619504515468757307947645521161327720209063860598015646305331448e-10,
-//     9.68244793881132063924995035178355045757900947721441517282950473502e-10,
-//     1.75814361609054096350867672268760855592746632087610570664525485865e-11,
-//     -8.00743459988205434622423451223813076870124755257829339225668138144e-12,
-// ];
 
 fn sin_taylor(x: f64) -> f64 {
     let mut xn = 1.0;
@@ -94,11 +65,64 @@ pub fn tan(x: f64) -> f64 {
     sin(x) / cos(x)
 }
 
+#[inline(always)]
+fn sin_taylor_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let mut xn = Simd::splat(1.0);
+    let mut acc = Simd::splat(0.0);
+
+    for f in TAYLOR_COEFFS {
+        acc = xn.mul_add(Simd::splat(f), acc);
+        xn *= x;
+    }
+
+    acc
+}
+
+#[inline(always)]
+fn sin_shift_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let (u, n) = periodic_clamp_simd(x, PI / 2.0);
+
+    let n: Simd<i64, LANES> = n.cast();
+
+    let u = (n & Simd::splat(1)).simd_eq(Simd::splat(0)).select(u, -u);
+
+    let tl = sin_taylor_simd(u);
+
+    (n & Simd::splat(2)).simd_eq(Simd::splat(0)).select(tl, -tl)
+}
+
+pub fn sin_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    sin_shift_simd(x - Simd::splat(PI / 4.0))
+}
+
+pub fn cos_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    sin_shift_simd(x + Simd::splat(PI / 4.0))
+}
+
+pub fn tan_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    sin_simd(x) / cos_simd(x)
+}
+
 #[cfg(test)]
 mod tests {
-    use std::{f64::consts::PI, time::Instant};
+    use std::{f64::consts::PI, time::Instant, simd::Simd};
 
-    use crate::{*, trig::sin_shift};
+    use crate::{trig::sin_shift, *};
 
     use super::sin_taylor;
 
@@ -464,6 +488,110 @@ mod tests {
         let mut y_tlr = x.map(tan);
         for _ in 0..ITERS {
             y_tlr = x.map(tan)
+        }
+        let t2 = t.elapsed();
+
+        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
+
+        let mut diff = [0.0; 8];
+        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
+        {
+            *d = y;
+        }
+
+        let mut rdiff = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
+            *c = a / b;
+        }
+
+        let mut rdiff2 = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
+            *c = a / b;
+        }
+
+        print_array(&diff);
+        print_array(&rdiff);
+        print_array(&rdiff2);
+    }
+
+    #[test]
+    fn test_sin_small_simd() {
+        let x: [f64; 8] = [
+            -4.725590455468264,
+            -3.029442898943749,
+            0.3449817636324948,
+            -0.7537994616348398,
+            0.7327486458751387,
+            3.1200184229578154,
+            -4.9415570981767365,
+            -4.933437312855772,
+        ];
+
+        const ITERS: usize = 1000000;
+
+        let t = Instant::now();
+        let mut y_std = x.map(|x| x.sin());
+        for _ in 0..ITERS {
+            y_std = x.map(|x| x.sin());
+        }
+        let t1 = t.elapsed();
+
+        let t = Instant::now();
+        let mut y_tlr = sin_simd(Simd::from(x)).to_array();
+        for _ in 0..ITERS {
+            y_tlr = sin_simd(Simd::from(x)).to_array();
+        }
+        let t2 = t.elapsed();
+
+        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
+
+        let mut diff = [0.0; 8];
+        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
+        {
+            *d = y;
+        }
+
+        let mut rdiff = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
+            *c = a / b;
+        }
+
+        let mut rdiff2 = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
+            *c = a / b;
+        }
+
+        print_array(&diff);
+        print_array(&rdiff);
+        print_array(&rdiff2);
+    }
+
+    #[test]
+    fn test_tan_small_simd() {
+        let x: [f64; 8] = [
+            -4.725590455468264,
+            -3.029442898943749,
+            0.3449817636324948,
+            -0.7537994616348398,
+            0.7327486458751387,
+            3.1200184229578154,
+            -4.9415570981767365,
+            -4.933437312855772,
+        ];
+
+        const ITERS: usize = 1000000;
+
+        let t = Instant::now();
+        let mut y_std = x.map(|x| x.tan());
+        for _ in 0..ITERS {
+            y_std = x.map(|x| x.tan());
+        }
+        let t1 = t.elapsed();
+
+        let t = Instant::now();
+        let mut y_tlr = tan_simd(Simd::from(x)).to_array();
+        for _ in 0..ITERS {
+            y_tlr = tan_simd(Simd::from(x)).to_array();
         }
         let t2 = t.elapsed();
 
