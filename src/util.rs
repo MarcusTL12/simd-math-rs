@@ -1,5 +1,6 @@
 use std::simd::{
-    LaneCount, Simd, SimdFloat, SimdInt, SimdPartialEq, SupportedLaneCount,
+    LaneCount, Simd, SimdFloat, SimdInt, SimdPartialEq, StdFloat,
+    SupportedLaneCount,
 };
 
 #[inline(always)]
@@ -58,6 +59,34 @@ where
 
         x *= x;
         n >>= Simd::splat(1);
+    }
+
+    acc
+}
+
+#[inline(always)]
+pub fn polyval<const N: usize>(cs: &[f64; N], x: f64) -> f64 {
+    let mut acc = cs[0];
+
+    for &c in &cs[1..] {
+        acc = x.mul_add(acc, c);
+    }
+
+    acc
+}
+
+#[inline(always)]
+pub fn polyval_simd<const N: usize, const LANES: usize>(
+    cs: &[f64; N],
+    x: Simd<f64, LANES>,
+) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let mut acc = Simd::splat(cs[0]);
+
+    for &c in &cs[1..] {
+        acc = x.mul_add(acc, Simd::splat(c));
     }
 
     acc

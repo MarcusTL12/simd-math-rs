@@ -1,41 +1,28 @@
 use std::{
     f64::consts::PI,
-    simd::{LaneCount, Simd, SimdPartialEq, StdFloat, SupportedLaneCount},
+    simd::{LaneCount, Simd, SimdPartialEq, SupportedLaneCount},
 };
 
-use crate::{periodic_clamp, periodic_clamp_simd};
+use crate::{periodic_clamp, periodic_clamp_simd, polyval, polyval_simd};
 
-// Actual taylor coefficients
 const TAYLOR_COEFFS: [f64; 16] = [
-    0.707106781186547524400844362104849039284835937688474036588339868995,
-    0.707106781186547524400844362104849039284835937688474036588339868995,
-    -0.353553390593273762200422181052424519642417968844237018294169934497,
-    -0.117851130197757920733474060350808173214139322948079006098056644832,
-    0.029462782549439480183368515087702043303534830737019751524514161208,
-    0.005892556509887896036673703017540408660706966147403950304902832241,
-    -0.000982092751647982672778950502923401443451161024567325050817138706,
-    -0.000140298964521140381825564357560485920493023003509617864402448386,
-    1.753737056514254772819554469506074006162787543870223305030604833817e-05,
-    1.948596729460283080910616077228971117958652826522470338922894259797e-06,
-    -1.948596729460283080910616077228971117958652826522470338922894259797e-07,
-    -1.771451572236620982646014615662701016326048024111336671748085690725e-08,
-    1.476209643530517485538345513052250846938373353426113893123404742270e-09,
-    1.135545879638859604260265779270962189952594887250856840864157494054e-10,
-    -8.111041997420425744716184137649729928232820623220406006172553528961e-12,
-    -5.407361331613617163144122758433153285488547082146937337448369019307e-13,
+    -5.407361331613617e-13,
+    -8.111041997420426e-12,
+    1.1355458796388596e-10,
+    1.4762096435305176e-9,
+    -1.771451572236621e-8,
+    -1.948596729460283e-7,
+    1.948596729460283e-6,
+    1.7537370565142548e-5,
+    -0.00014029896452114038,
+    -0.0009820927516479827,
+    0.005892556509887896,
+    0.02946278254943948,
+    -0.11785113019775792,
+    -0.3535533905932738,
+    0.7071067811865476,
+    0.7071067811865476,
 ];
-
-fn sin_taylor(x: f64) -> f64 {
-    let mut xn = 1.0;
-    let mut acc = 0.0;
-
-    for c in TAYLOR_COEFFS {
-        acc += xn * c;
-        xn *= x;
-    }
-
-    acc
-}
 
 fn sin_shift(x: f64) -> f64 {
     let (mut u, n) = periodic_clamp(x, PI / 2.0);
@@ -44,7 +31,7 @@ fn sin_shift(x: f64) -> f64 {
         u = -u;
     }
 
-    let mut tl = sin_taylor(u);
+    let mut tl = polyval(&TAYLOR_COEFFS, u);
 
     if n & 2 != 0 {
         tl = -tl;
@@ -66,22 +53,6 @@ pub fn tan(x: f64) -> f64 {
 }
 
 #[inline(always)]
-fn sin_taylor_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
-where
-    LaneCount<LANES>: SupportedLaneCount,
-{
-    let mut xn = Simd::splat(1.0);
-    let mut acc = Simd::splat(0.0);
-
-    for f in TAYLOR_COEFFS {
-        acc = xn.mul_add(Simd::splat(f), acc);
-        xn *= x;
-    }
-
-    acc
-}
-
-#[inline(always)]
 fn sin_shift_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
@@ -92,7 +63,7 @@ where
 
     let u = (n & Simd::splat(1)).simd_eq(Simd::splat(0)).select(u, -u);
 
-    let tl = sin_taylor_simd(u);
+    let tl = polyval_simd(&TAYLOR_COEFFS, u);
 
     (n & Simd::splat(2)).simd_eq(Simd::splat(0)).select(tl, -tl)
 }
@@ -120,11 +91,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{f64::consts::PI, time::Instant, simd::Simd};
+    use std::{f64::consts::PI, simd::Simd, time::Instant};
 
     use crate::{trig::sin_shift, *};
-
-    use super::sin_taylor;
 
     fn print_array(a: &[f64]) {
         print!("[");
@@ -134,39 +103,6 @@ mod tests {
             first = false;
         }
         println!("]");
-    }
-
-    #[test]
-    fn test_taylor() {
-        let x = [
-            -0.7853981633974483,
-            -0.5609986881410345,
-            -0.3365992128846207,
-            -0.1121997376282069,
-            0.1121997376282069,
-            0.3365992128846207,
-            0.5609986881410345,
-            0.7853981633974483,
-        ];
-
-        let y_std = x.map(|x| (x + PI / 4.0).sin());
-        let y_tlr = x.map(sin_taylor);
-
-        println!("{y_std:.5?}\n{y_tlr:.5?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
     }
 
     #[test]
