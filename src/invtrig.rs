@@ -1,37 +1,58 @@
-use std::f64::consts::PI;
+use crate::polyval;
 
-use crate::tan;
+// Domain: 0 <= x <= 0.25
+const TAYLOR: [f64; 12] = [
+    1.4249583610776878e-5,
+    9.128894812417154e-5,
+    -0.0005608352726600329,
+    0.0015816919558857214,
+    -0.002984804150564612,
+    0.003521396901036374,
+    0.0005351473351693737,
+    -0.017507834130453707,
+    0.06272251067722215,
+    -0.1597881665449233,
+    0.33783783783783783,
+    0.9505468408120752,
+];
 
-fn atan_newton_guess(x: f64) -> f64 {
-    if x > 0.9134022578162978 {
-        let xr = x.recip();
-        PI / 2.0 - xr + (xr * xr * xr) / 3.0
-    } else {
-        x
-    }
-}
+const TAN_4: f64 = 0.24497866312686414;
+const TAN_2: f64 = 0.4636476090008061;
+const TAN_1: f64 = 0.7853981633974483;
 
 pub fn atan(x: f64) -> f64 {
-    let s = x;
-    let x = x.abs();
-
-    let mut y = atan_newton_guess(x);
-
-    for _ in 0..5 {
-        let t = tan(y);
-        let dt = t.mul_add(t, 1.0);
-
-        y -= (t - x) / dt;
+    fn s(x: f64, n: i32) -> f64 {
+        let f2 = 2f64.powi(-n);
+        (x - f2) / (1.0 + f2 * x)
     }
 
-    y.copysign(s)
+    let s0 = x;
+    let x0 = s0.abs();
+
+    let s1 = s(x0, 0);
+    let x1 = s1.abs(); // in [0, 1]
+
+    let s2 = s(x1, 1);
+    let x2 = s2.abs(); // in [0, 0.5]
+
+    let s3 = s(x2, 2);
+    let x3 = s3.abs(); // in [0, 0.25]
+
+    let atx3 = polyval(&TAYLOR, x3);
+
+    let p3 = atx3.copysign(s3) + TAN_4;
+    let p2 = p3.copysign(s2) + TAN_2;
+    let p1 = p2.copysign(s1) + TAN_1;
+    let p0 = p1.copysign(s0);
+
+    p0
 }
 
 #[cfg(test)]
 mod tests {
     use std::time::Instant;
 
-    use crate::invtrig::atan;
+    use crate::atan;
 
     fn print_array(a: &[f64]) {
         print!("[");
