@@ -53,6 +53,7 @@ pub fn atan(x: f64) -> f64 {
     p0
 }
 
+#[inline(always)]
 pub fn atan_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
 where
     LaneCount<LANES>: SupportedLaneCount,
@@ -117,16 +118,16 @@ mod tests {
         const ITERS: usize = 1000000;
 
         let t = Instant::now();
-        let mut y_std = x.map(|x| x.atan());
+        let mut y_std = x;
         for _ in 0..ITERS {
-            y_std = x.map(|x| x.atan());
+            y_std = y_std.map(|x| x.atan());
         }
         let t1 = t.elapsed();
 
         let t = Instant::now();
-        let mut y_tlr = x.map(atan);
+        let mut y_tlr = x;
         for _ in 0..ITERS {
-            y_tlr = x.map(atan);
+            y_tlr = y_tlr.map(atan);
         }
         let t2 = t.elapsed();
 
@@ -169,17 +170,18 @@ mod tests {
         const ITERS: usize = 1000000;
 
         let t = Instant::now();
-        let mut y_std = x.map(|x| x.atan());
+        let mut y_std = x;
         for _ in 0..ITERS {
-            y_std = x.map(|x| x.atan());
+            y_std = y_std.map(|x| x.atan());
         }
         let t1 = t.elapsed();
 
         let t = Instant::now();
-        let mut y_tlr = atan_simd(Simd::from(x)).to_array();
+        let mut y_tlr = Simd::from(x);
         for _ in 0..ITERS {
-            y_tlr = atan_simd(Simd::from(x)).to_array();
+            y_tlr = atan_simd(y_tlr);
         }
+        let y_tlr = y_tlr.to_array();
         let t2 = t.elapsed();
 
         println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
