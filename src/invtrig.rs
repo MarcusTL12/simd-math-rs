@@ -1,4 +1,4 @@
-use std::simd::{LaneCount, Simd, SimdFloat, SupportedLaneCount};
+use std::simd::{LaneCount, Simd, SimdFloat, StdFloat, SupportedLaneCount};
 
 use crate::{polyval, polyval_simd};
 
@@ -28,7 +28,7 @@ const TAN_1: f64 = 0.7853981633974483;
 pub fn atan(x: f64) -> f64 {
     fn s(x: f64, n: i32) -> f64 {
         let f2 = 2f64.powi(-n);
-        (x - f2) / (1.0 + f2 * x)
+        (x - f2) / f2.mul_add(x, 1.0)
     }
 
     let s0 = x;
@@ -61,7 +61,7 @@ where
     let s = |x, n: i32| {
         let f2 = Simd::splat(2f64.powi(-n));
 
-        (x - f2) / (Simd::splat(1.0) + f2 * x)
+        (x - f2) / f2.mul_add(x, Simd::splat(1.0))
     };
 
     let s0 = x;
