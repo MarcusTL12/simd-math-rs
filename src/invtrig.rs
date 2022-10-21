@@ -1,19 +1,24 @@
-use crate::polyval;
+use std::simd::{Simd, LaneCount, SupportedLaneCount, SimdFloat};
+
+use crate::{polyval, polyval_simd};
 
 // Domain: 0 <= x <= 0.25
-const TAYLOR: [f64; 12] = [
-    1.4249583610776878e-5,
-    9.128894812417154e-5,
-    -0.0005608352726600329,
-    0.0015816919558857214,
-    -0.002984804150564612,
-    0.003521396901036374,
-    0.0005351473351693737,
-    -0.017507834130453707,
-    0.06272251067722215,
-    -0.1597881665449233,
-    0.33783783783783783,
-    0.9505468408120752,
+const TAYLOR: [f64; 15] = [
+    -0.05935190303616799,
+    0.10193283675657623,
+    -0.005670542509580847,
+    -0.09038859634762113,
+    6.982378651457376e-5,
+    0.11108220495522635,
+    4.222287252074105e-6,
+    -0.14285747979512672,
+    1.4572412077765227e-8,
+    0.19999999973142432,
+    0.0,
+    -0.3333333333333333,
+    0.0,
+    1.0,
+    0.0,
 ];
 
 const TAN_4: f64 = 0.24497866312686414;
@@ -48,11 +53,43 @@ pub fn atan(x: f64) -> f64 {
     p0
 }
 
+pub fn atan_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let s = |x, n: i32| {
+        let f2 = Simd::splat(2f64.powi(-n));
+
+        (x - f2) / (Simd::splat(1.0) + f2 * x)
+    };
+
+    let s0 = x;
+    let x0 = s0.abs();
+
+    let s1 = s(x0, 0);
+    let x1 = s1.abs(); // in [0, 1]
+
+    let s2 = s(x1, 1);
+    let x2 = s2.abs(); // in [0, 0.5]
+
+    let s3 = s(x2, 2);
+    let x3 = s3.abs(); // in [0, 0.25]
+
+    let atx3 = polyval_simd(&TAYLOR, x3);
+
+    let p3 = atx3.copysign(s3) + Simd::splat(TAN_4);
+    let p2 = p3.copysign(s2) + Simd::splat(TAN_2);
+    let p1 = p2.copysign(s1) + Simd::splat(TAN_1);
+    let p0 = p1.copysign(s0);
+
+    p0
+}
+
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
+    use std::{time::Instant, simd::Simd};
 
-    use crate::atan;
+    use crate::{atan, atan_simd};
 
     fn print_array(a: &[f64]) {
         print!("[");
@@ -77,7 +114,7 @@ mod tests {
             -4.318069330898973,
         ];
 
-        const ITERS: usize = 100000;
+        const ITERS: usize = 1000000;
 
         let t = Instant::now();
         let mut y_std = x.map(|x| x.atan());
@@ -90,6 +127,58 @@ mod tests {
         let mut y_tlr = x.map(atan);
         for _ in 0..ITERS {
             y_tlr = x.map(atan);
+        }
+        let t2 = t.elapsed();
+
+        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
+
+        let mut diff = [0.0; 8];
+        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
+        {
+            *d = y;
+        }
+
+        let mut rdiff = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
+            *c = a / b;
+        }
+
+        let mut rdiff2 = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
+            *c = a / b;
+        }
+
+        print_array(&diff);
+        print_array(&rdiff);
+        print_array(&rdiff2);
+    }
+
+    #[test]
+    fn test_atan_simd() {
+        let x: [f64; 8] = [
+            -6.470329170669899,
+            7.608185328297425,
+            3.03226005318477,
+            1.6990497408119154,
+            -5.422265238742455,
+            -3.9968940734442704,
+            5.683523314814294,
+            -4.318069330898973,
+        ];
+
+        const ITERS: usize = 1000000;
+
+        let t = Instant::now();
+        let mut y_std = x.map(|x| x.atan());
+        for _ in 0..ITERS {
+            y_std = x.map(|x| x.atan());
+        }
+        let t1 = t.elapsed();
+
+        let t = Instant::now();
+        let mut y_tlr = atan_simd(Simd::from(x)).to_array();
+        for _ in 0..ITERS {
+            y_tlr = atan_simd(Simd::from(x)).to_array();
         }
         let t2 = t.elapsed();
 
