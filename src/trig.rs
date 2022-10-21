@@ -91,19 +91,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{f64::consts::PI, simd::Simd, time::Instant};
+    use std::f64::consts::PI;
 
-    use crate::{trig::sin_shift, *};
-
-    fn print_array(a: &[f64]) {
-        print!("[");
-        let mut first = true;
-        for x in a {
-            print!("{}{:9.2e}", if first { "" } else { ", " }, x);
-            first = false;
-        }
-        println!("]");
-    }
+    use crate::{
+        tests::{accuracy_test, speed_test_simd_iterated},
+        trig::sin_shift,
+        *,
+    };
 
     #[test]
     fn test_sin_shift() {
@@ -118,24 +112,7 @@ mod tests {
             -5.339014479417625,
         ];
 
-        let y_std = x.map(|x| (x + PI / 4.0).sin());
-        let y_tlr = x.map(sin_shift);
-
-        println!("{y_std:9.5?}\n{y_tlr:9.5?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
+        accuracy_test(&x, |x| (x + PI / 4.0).sin(), sin_shift);
     }
 
     #[test]
@@ -151,43 +128,7 @@ mod tests {
             -4.933437312855772,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.sin());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.sin())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(sin);
-        for _ in 0..ITERS {
-            y_tlr = x.map(sin)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.sin(), sin);
     }
 
     #[test]
@@ -203,43 +144,7 @@ mod tests {
             2267.811391833918,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.sin());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.sin())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(sin);
-        for _ in 0..ITERS {
-            y_tlr = x.map(sin)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.sin(), sin);
     }
 
     #[test]
@@ -255,43 +160,7 @@ mod tests {
             -4.933437312855772,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.cos());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.cos())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(cos);
-        for _ in 0..ITERS {
-            y_tlr = x.map(cos)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.cos(), cos);
     }
 
     #[test]
@@ -307,43 +176,7 @@ mod tests {
             2267.811391833918,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.cos());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.cos())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(cos);
-        for _ in 0..ITERS {
-            y_tlr = x.map(cos)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.cos(), cos);
     }
 
     #[test]
@@ -359,43 +192,7 @@ mod tests {
             -4.933437312855772,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.tan());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.tan())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(tan);
-        for _ in 0..ITERS {
-            y_tlr = x.map(tan)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.tan(), tan);
     }
 
     #[test]
@@ -411,43 +208,7 @@ mod tests {
             2267.811391833918,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.tan());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.tan())
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x.map(tan);
-        for _ in 0..ITERS {
-            y_tlr = x.map(tan)
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.tan(), tan);
     }
 
     #[test]
@@ -465,41 +226,25 @@ mod tests {
 
         const ITERS: usize = 1000000;
 
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.sin());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.sin());
-        }
-        let t1 = t.elapsed();
+        speed_test_simd_iterated(x, |x| x.sin(), sin_simd, ITERS);
+    }
 
-        let t = Instant::now();
-        let mut y_tlr = sin_simd(Simd::from(x)).to_array();
-        for _ in 0..ITERS {
-            y_tlr = sin_simd(Simd::from(x)).to_array();
-        }
-        let t2 = t.elapsed();
+    #[test]
+    fn test_cos_small_simd() {
+        let x: [f64; 8] = [
+            -4.725590455468264,
+            -3.029442898943749,
+            0.3449817636324948,
+            -0.7537994616348398,
+            0.7327486458751387,
+            3.1200184229578154,
+            -4.9415570981767365,
+            -4.933437312855772,
+        ];
 
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
+        const ITERS: usize = 1000000;
 
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        speed_test_simd_iterated(x, |x| x.cos(), cos_simd, ITERS);
     }
 
     #[test]
@@ -517,40 +262,6 @@ mod tests {
 
         const ITERS: usize = 1000000;
 
-        let t = Instant::now();
-        let mut y_std = x.map(|x| x.tan());
-        for _ in 0..ITERS {
-            y_std = x.map(|x| x.tan());
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = tan_simd(Simd::from(x)).to_array();
-        for _ in 0..ITERS {
-            y_tlr = tan_simd(Simd::from(x)).to_array();
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        speed_test_simd_iterated(x, |x| x.tan(), tan_simd, ITERS);
     }
 }

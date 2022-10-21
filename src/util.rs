@@ -93,12 +93,12 @@ where
 }
 
 #[cfg(test)]
-mod tests {
-    use std::{f64::consts::PI, simd::Simd, time::Instant};
+pub mod tests {
+    use std::{f64::consts::PI, simd::{Simd, LaneCount, SupportedLaneCount}, time::Instant};
 
     use crate::*;
 
-    fn print_array(a: &[f64]) {
+    pub fn print_array(a: &[f64]) {
         print!("[");
         let mut first = true;
         for x in a {
@@ -106,6 +106,83 @@ mod tests {
             first = false;
         }
         println!("]");
+    }
+
+    pub fn accuracy_test<F1: Fn(f64) -> f64, F2: Fn(f64) -> f64>(
+        x: &[f64],
+        f_std: F1,
+        f_lib: F2,
+    ) {
+        let y_std: Vec<_> = x.iter().map(|&x| f_std(x)).collect();
+        let y_lib: Vec<_> = x.iter().map(|&x| f_lib(x)).collect();
+
+        let diff: Vec<_> =
+            y_std.iter().zip(&y_lib).map(|(a, b)| a - b).collect();
+
+        let rdiff: Vec<_> =
+            diff.iter().zip(&y_std).map(|(a, b)| a / b).collect();
+
+        let rdiff2: Vec<_> = diff.iter().zip(x).map(|(a, b)| a / b).collect();
+
+        print!("x:     ");
+        print_array(x);
+        print!("y_std: ");
+        print_array(&y_std);
+        print!("y_lib: ");
+        print_array(&y_lib);
+        print!("adiff: ");
+        print_array(&diff);
+        print!("rodiff:");
+        print_array(&rdiff);
+        print!("ridiff:");
+        print_array(&rdiff2);
+    }
+
+    pub fn speed_test_simd_iterated<
+        const LANES: usize,
+        F1: Fn(f64) -> f64 + Copy,
+        F2: Fn(Simd<f64, LANES>) -> Simd<f64, LANES>,
+    >(
+        x: [f64; LANES],
+        f_std: F1,
+        f_lib: F2,
+        iters: usize,
+    ) where
+        LaneCount<LANES>: SupportedLaneCount,
+    {
+        let t = Instant::now();
+        let mut y_std = x;
+        for _ in 0..iters {
+            y_std = y_std.map(f_std);
+        }
+        let t_std = t.elapsed();
+        let mut y_lib = Simd::from(x);
+        for _ in 0..iters {
+            y_lib = f_lib(y_lib);
+        }
+        let y_lib = y_lib.to_array();
+        let t_lib = t.elapsed() - t_std;
+
+        let mut diff = [0.0; 8];
+        for (y, d) in y_std.iter().zip(y_lib).map(|(a, b)| a - b).zip(&mut diff) {
+            *d = y;
+        }
+
+        let mut rdiff = [0.0; 8];
+        for ((a, b), c) in diff.iter().zip(&y_lib).zip(&mut rdiff) {
+            *c = a / b;
+        }
+
+        print!("x:     ");
+        print_array(&x);
+        print!("y_std (took {t_std:?}):\n       ");
+        print_array(&y_std);
+        print!("y_lib (took {t_lib:?}):\n       ");
+        print_array(&y_lib);
+        print!("adiff: ");
+        print_array(&diff);
+        print!("rdiff: ");
+        print_array(&rdiff);
     }
 
     #[test]

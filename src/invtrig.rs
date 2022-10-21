@@ -1,4 +1,4 @@
-use std::simd::{Simd, LaneCount, SupportedLaneCount, SimdFloat};
+use std::simd::{LaneCount, Simd, SimdFloat, SupportedLaneCount};
 
 use crate::{polyval, polyval_simd};
 
@@ -88,19 +88,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{time::Instant, simd::Simd};
-
-    use crate::{atan, atan_simd};
-
-    fn print_array(a: &[f64]) {
-        print!("[");
-        let mut first = true;
-        for x in a {
-            print!("{}{:9.2e}", if first { "" } else { ", " }, x);
-            first = false;
-        }
-        println!("]");
-    }
+    use crate::{
+        tests::{accuracy_test, speed_test_simd_iterated},
+        *,
+    };
 
     #[test]
     fn test_atan() {
@@ -115,43 +106,7 @@ mod tests {
             -4.318069330898973,
         ];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y_std = x;
-        for _ in 0..ITERS {
-            y_std = y_std.map(|x| x.atan());
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = x;
-        for _ in 0..ITERS {
-            y_tlr = y_tlr.map(atan);
-        }
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        accuracy_test(&x, |x| x.atan(), atan);
     }
 
     #[test]
@@ -167,43 +122,8 @@ mod tests {
             -4.318069330898973,
         ];
 
-        const ITERS: usize = 1000000;
+        const ITERS: usize = 10000000;
 
-        let t = Instant::now();
-        let mut y_std = x;
-        for _ in 0..ITERS {
-            y_std = y_std.map(|x| x.atan());
-        }
-        let t1 = t.elapsed();
-
-        let t = Instant::now();
-        let mut y_tlr = Simd::from(x);
-        for _ in 0..ITERS {
-            y_tlr = atan_simd(y_tlr);
-        }
-        let y_tlr = y_tlr.to_array();
-        let t2 = t.elapsed();
-
-        println!("{y_std:9.5?} took {t1:?}\n{y_tlr:9.5?} took {t2:?}");
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_tlr).map(|(a, b)| a - b).zip(&mut diff)
-        {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y_std).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        let mut rdiff2 = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&x).zip(&mut rdiff2) {
-            *c = a / b;
-        }
-
-        print_array(&diff);
-        print_array(&rdiff);
-        print_array(&rdiff2);
+        speed_test_simd_iterated(x, |x| x.atan(), atan_simd, ITERS);
     }
 }

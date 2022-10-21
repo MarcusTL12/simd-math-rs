@@ -1,6 +1,8 @@
 use std::simd::{LaneCount, Simd, SupportedLaneCount};
 
-use crate::{periodic_clamp, periodic_clamp_simd, powi, powi_simd, polyval, polyval_simd};
+use crate::{
+    periodic_clamp, periodic_clamp_simd, polyval, polyval_simd, powi, powi_simd,
+};
 
 const EXP_PT2: f64 = 1.2214027581601698;
 
@@ -44,51 +46,18 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{f64::consts::PI, simd::Simd, time::Instant};
+    use std::f64::consts::PI;
 
-    use crate::*;
-
-    fn print_array(a: &[f64]) {
-        print!("[");
-        let mut first = true;
-        for x in a {
-            print!("{}{:9.2e}", if first { "" } else { ", " }, x);
-            first = false;
-        }
-        println!("]");
-    }
+    use crate::{
+        tests::{accuracy_test, speed_test_simd_iterated},
+        *,
+    };
 
     #[test]
     fn test_exp() {
         let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
 
-        const ITERS: usize = 1000000;
-
-        let t = Instant::now();
-        let mut y1 = xs.map(exp);
-        for _ in 1..ITERS {
-            y1 = xs.map(exp);
-        }
-        let t1 = t.elapsed();
-        let mut y2 = xs.map(|x| x.exp());
-        for _ in 1..ITERS {
-            y2 = xs.map(|x| x.exp())
-        }
-        let t2 = t.elapsed() - t1;
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y1.iter().zip(y2).map(|(a, b)| a - b).zip(&mut diff) {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y2).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        println!("{y1:.5?} took {t1:?}\n{y2:.5?} took {t2:?}");
-        print_array(&diff);
-        print_array(&rdiff);
+        accuracy_test(&xs, |x: f64| x.exp(), exp);
     }
 
     #[test]
@@ -97,31 +66,11 @@ mod tests {
 
         const ITERS: usize = 1000000;
 
-        let t = Instant::now();
-        let mut y1 = xs;
-        for _ in 1..ITERS {
-            y1 = y1.map(|x| (-x * x).exp());
-        }
-        let t1 = t.elapsed();
-        let mut y2 = Simd::from(xs);
-        for _ in 1..ITERS {
-            y2 = exp_simd(-y2 * y2);
-        }
-        let y2 = y2.to_array();
-        let t2 = t.elapsed() - t1;
-
-        let mut diff = [0.0; 8];
-        for (y, d) in y1.iter().zip(y2).map(|(a, b)| a - b).zip(&mut diff) {
-            *d = y;
-        }
-
-        let mut rdiff = [0.0; 8];
-        for ((a, b), c) in diff.iter().zip(&y2).zip(&mut rdiff) {
-            *c = a / b;
-        }
-
-        println!("{y1:.5?} took {t1:?}\n{y2:.5?} took {t2:?}");
-        print_array(&diff);
-        print_array(&rdiff);
+        speed_test_simd_iterated(
+            xs,
+            |x: f64| (-x * x).exp(),
+            |x| exp_simd(-x * x),
+            ITERS,
+        );
     }
 }
