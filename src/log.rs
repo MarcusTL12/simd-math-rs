@@ -97,7 +97,12 @@ where
 
     let n = n.is_negative().select(n + Simd::splat(1), n);
 
-    let x = x * powi_simd(Simd::splat(2.0), -n);
+    let x = x * powi_simd(
+        n.is_positive()
+            .cast()
+            .select(Simd::splat(0.5), Simd::splat(2.0)),
+        n.abs(),
+    );
 
     let (nsq2, fsq2) = {
         let n = Simd::splat(1.0).copysign(x);
