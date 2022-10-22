@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[test]
-    fn test_exp_simd_accuracy() {
+    fn test_exp_simd() {
         accuracy_test_simd(X, |x: f64| (-x * x).exp(), |x| exp_simd(-x * x));
     }
 
