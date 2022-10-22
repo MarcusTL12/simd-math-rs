@@ -65,6 +65,29 @@ where
 }
 
 #[inline(always)]
+pub fn powi_simd_pos<const LANES: usize>(
+    mut x: Simd<f64, LANES>,
+    mut n: Simd<u32, LANES>,
+) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let mut acc = Simd::splat(1.0);
+
+    while !n.simd_eq(Simd::splat(0)).all() {
+        acc = (n & Simd::splat(1))
+            .simd_eq(Simd::splat(0))
+            .cast()
+            .select(acc, acc * x);
+
+        x *= x;
+        n >>= Simd::splat(1);
+    }
+
+    acc
+}
+
+#[inline(always)]
 pub fn polyval<const N: usize>(cs: &[f64; N], x: f64) -> f64 {
     let mut acc = cs[0];
 
@@ -94,7 +117,11 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use std::{f64::consts::PI, simd::{Simd, LaneCount, SupportedLaneCount}, time::Instant};
+    use std::{
+        f64::consts::PI,
+        simd::{LaneCount, Simd, SupportedLaneCount},
+        time::Instant,
+    };
 
     use crate::*;
 
@@ -164,7 +191,8 @@ pub mod tests {
         let t_lib = t.elapsed() - t_std;
 
         let mut diff = [0.0; 8];
-        for (y, d) in y_std.iter().zip(y_lib).map(|(a, b)| a - b).zip(&mut diff) {
+        for (y, d) in y_std.iter().zip(y_lib).map(|(a, b)| a - b).zip(&mut diff)
+        {
             *d = y;
         }
 

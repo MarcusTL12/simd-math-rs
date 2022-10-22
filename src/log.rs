@@ -1,6 +1,6 @@
 use std::simd::{LaneCount, Simd, SimdFloat, SimdInt, SupportedLaneCount};
 
-use crate::{polyval, polyval_simd, powi_simd};
+use crate::{polyval, polyval_simd, powi_simd_pos};
 
 // f(x) = ln(x + 1)
 // domain: (2^(-1/4) - 1, 2^(1/4) - 1)
@@ -97,11 +97,11 @@ where
 
     let n = n.is_negative().select(n + Simd::splat(1), n);
 
-    let x = x * powi_simd(
+    let x = x * powi_simd_pos(
         n.is_positive()
             .cast()
             .select(Simd::splat(0.5), Simd::splat(2.0)),
-        n.abs(),
+        n.abs().cast(),
     );
 
     let (nsq2, fsq2) = {
@@ -128,8 +128,8 @@ where
 
     polyval_simd(&TAYLOR, x - Simd::splat(1.0))
         + n.cast() * Simd::splat(LN2)
-        + nsq2.cast() * Simd::splat(LNSQRT2)
-        + n2p4.cast() * Simd::splat(LN2POW4TH)
+        + nsq2 * Simd::splat(LNSQRT2)
+        + n2p4 * Simd::splat(LN2POW4TH)
 }
 
 #[cfg(test)]
