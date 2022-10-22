@@ -1,6 +1,6 @@
 use std::simd::{LaneCount, Simd, SupportedLaneCount};
 
-use crate::{exp_simd, sin_simd, cos_simd, tan_simd, atan_simd, ln_simd};
+use crate::{exp_simd, sin_simd, cos_simd, tan_simd, atan_simd, ln_simd, atan2_simd};
 
 use super::SimdFloatMath;
 
@@ -27,6 +27,10 @@ where
 
     fn atan(self) -> Self {
         atan_simd(self)
+    }
+
+    fn atan2(self, x: Self) -> Self {
+        atan2_simd(self, x)
     }
 
     fn ln(self) -> Self {

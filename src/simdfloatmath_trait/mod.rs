@@ -10,6 +10,7 @@ pub trait SimdFloatMath: SimdFloat {
     fn tan(self) -> Self;
 
     fn atan(self) -> Self;
+    fn atan2(self, x: Self) -> Self;
 
     fn ln(self) -> Self;
 }

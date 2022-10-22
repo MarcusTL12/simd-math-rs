@@ -131,8 +131,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::simd::Simd;
+
     use crate::{
-        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
+        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated, print_array},
         *,
     };
 
@@ -162,5 +164,53 @@ mod tests {
         const ITERS: usize = 1000000;
 
         speed_test_simd_iterated(X, |x| x.atan(), |x| x.atan(), ITERS);
+    }
+
+    #[test]
+    fn test_atan2_simd() {
+        let x: [f64; 8] = [
+            -3.040346321204024,
+            -7.777732768220749,
+            0.0,
+            0.0,
+            8.027398490685906,
+            2.7258759638490715,
+            1.031443408365491,
+            9.780589683514657,
+        ];
+        let y: [f64; 8] = [
+            3.4337362961327833,
+            0.0,
+            -3.9420415247878404,
+            6.9871321446290535,
+            0.0,
+            -8.517577704672803,
+            -2.9815685286318883,
+            -9.880496852312818,
+        ];
+
+        let y_std: Vec<_> =
+            x.iter().zip(&y).map(|(x, y)| y.atan2(*x)).collect();
+
+        let y_lib = Simd::from(y).atan2(Simd::from(x)).to_array();
+
+        let diff: Vec<_> =
+            y_std.iter().zip(&y_lib).map(|(a, b)| a - b).collect();
+
+        let rdiff: Vec<_> =
+            diff.iter().zip(&y_std).map(|(a, b)| a / b).collect();
+
+        print!("y:     ");
+        print_array(&y);
+        print!("x:     ");
+        print_array(&x);
+        print!("y_std: ");
+        print_array(&y_std);
+        print!("y_lib: ");
+        print_array(&y_lib);
+        print!("adiff: ");
+        print_array(&diff);
+        print!("rodiff:");
+        print_array(&rdiff);
     }
 }
