@@ -104,32 +104,20 @@ where
         n.abs().cast(),
     );
 
-    let (nsq2, fsq2) = {
-        let n = Simd::splat(1.0).copysign(x);
-        let f = x
-            .is_sign_positive()
-            .select(Simd::splat(SQRT2_INV), Simd::splat(SQRT2));
+    let ssq2 = x;
+    let x = x * x
+        .is_sign_positive()
+        .select(Simd::splat(SQRT2_INV), Simd::splat(SQRT2));
 
-        (n, f)
-    };
-
-    let x = x * fsq2;
-
-    let (n2p4, f2p4) = {
-        let n = Simd::splat(1.0).copysign(x);
-        let f = x
-            .is_sign_positive()
-            .select(Simd::splat(TWOPOW4TH_INV), Simd::splat(TWOPOW4TH));
-
-        (n, f)
-    };
-
-    let x = x * f2p4;
+    let s2p4 = x;
+    let x = x * x
+        .is_sign_positive()
+        .select(Simd::splat(TWOPOW4TH_INV), Simd::splat(TWOPOW4TH));
 
     polyval_simd(&TAYLOR, x - Simd::splat(1.0))
         + n.cast() * Simd::splat(LN2)
-        + nsq2 * Simd::splat(LNSQRT2)
-        + n2p4 * Simd::splat(LN2POW4TH)
+        + Simd::splat(LNSQRT2).copysign(ssq2)
+        + Simd::splat(LN2POW4TH).copysign(s2p4)
 }
 
 #[cfg(test)]
