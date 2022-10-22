@@ -94,10 +94,32 @@ mod tests {
     use std::f64::consts::PI;
 
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated},
+        tests::{accuracy_test, speed_test_simd_iterated, accuracy_test_simd},
         trig::sin_shift,
         *,
     };
+
+    const X_SMALL: [f64; 8] = [
+        -4.725590455468264,
+        -3.029442898943749,
+        0.3449817636324948,
+        -0.7537994616348398,
+        0.7327486458751387,
+        3.1200184229578154,
+        -4.9415570981767365,
+        -4.933437312855772,
+    ];
+
+    const X_LARGE: [f64; 8] = [
+            -673.1445111913359,
+            -4194.129748644129,
+            2812.623289566699,
+            -4882.861762124198,
+            1815.6590613844326,
+            -4318.334861343217,
+            2955.7357268745563,
+            2267.811391833918,
+        ];
 
     #[test]
     fn test_sin_shift() {
@@ -116,152 +138,59 @@ mod tests {
     }
 
     #[test]
-    fn test_sin_small() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
-        accuracy_test(&x, |x| x.sin(), sin);
+    fn test_sin_accuracy() {
+        accuracy_test(&X_SMALL, |x| x.sin(), sin);
+        accuracy_test(&X_LARGE, |x| x.sin(), sin);
     }
 
     #[test]
-    fn test_sin_large() {
-        let x: [f64; 8] = [
-            -673.1445111913359,
-            -4194.129748644129,
-            2812.623289566699,
-            -4882.861762124198,
-            1815.6590613844326,
-            -4318.334861343217,
-            2955.7357268745563,
-            2267.811391833918,
-        ];
-
-        accuracy_test(&x, |x| x.sin(), sin);
+    fn test_cos_accuracy() {
+        accuracy_test(&X_SMALL, |x| x.cos(), cos);
+        accuracy_test(&X_LARGE, |x| x.cos(), cos);
     }
 
     #[test]
-    fn test_cos_small() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
-        accuracy_test(&x, |x| x.cos(), cos);
+    fn test_tan_accuracy() {
+        accuracy_test(&X_SMALL, |x| x.tan(), tan);
+        accuracy_test(&X_LARGE, |x| x.tan(), tan);
     }
 
     #[test]
-    fn test_cos_large() {
-        let x: [f64; 8] = [
-            -673.1445111913359,
-            -4194.129748644129,
-            2812.623289566699,
-            -4882.861762124198,
-            1815.6590613844326,
-            -4318.334861343217,
-            2955.7357268745563,
-            2267.811391833918,
-        ];
-
-        accuracy_test(&x, |x| x.cos(), cos);
+    fn test_sin_simd() {
+        accuracy_test_simd(X_SMALL, |x| x.sin(), sin_simd);
+        accuracy_test_simd(X_LARGE, |x| x.sin(), sin_simd);
     }
 
     #[test]
-    fn test_tan_small() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
-        accuracy_test(&x, |x| x.tan(), tan);
+    fn test_cos_simd() {
+        accuracy_test_simd(X_SMALL, |x| x.cos(), cos_simd);
+        accuracy_test_simd(X_LARGE, |x| x.cos(), cos_simd);
     }
 
     #[test]
-    fn test_tan_large() {
-        let x: [f64; 8] = [
-            -673.1445111913359,
-            -4194.129748644129,
-            2812.623289566699,
-            -4882.861762124198,
-            1815.6590613844326,
-            -4318.334861343217,
-            2955.7357268745563,
-            2267.811391833918,
-        ];
-
-        accuracy_test(&x, |x| x.tan(), tan);
+    fn test_tan_simd() {
+        accuracy_test_simd(X_SMALL, |x| x.tan(), tan_simd);
+        accuracy_test_simd(X_LARGE, |x| x.tan(), tan_simd);
     }
 
     #[test]
-    fn test_sin_small_simd() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
+    fn test_sin_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(x, |x| x.sin(), sin_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.sin(), sin_simd, ITERS);
     }
 
     #[test]
-    fn test_cos_small_simd() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
+    fn test_cos_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(x, |x| x.cos(), cos_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.cos(), cos_simd, ITERS);
     }
 
     #[test]
-    fn test_tan_small_simd() {
-        let x: [f64; 8] = [
-            -4.725590455468264,
-            -3.029442898943749,
-            0.3449817636324948,
-            -0.7537994616348398,
-            0.7327486458751387,
-            3.1200184229578154,
-            -4.9415570981767365,
-            -4.933437312855772,
-        ];
-
+    fn test_tan_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(x, |x| x.tan(), tan_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.tan(), tan_simd, ITERS);
     }
 }

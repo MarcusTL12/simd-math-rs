@@ -49,25 +49,29 @@ mod tests {
     use std::f64::consts::PI;
 
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated},
+        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         *,
     };
 
+    const X: [f64; 8] =
+        [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
+
     #[test]
     fn test_exp() {
-        let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
-
-        accuracy_test(&xs, |x: f64| x.exp(), exp);
+        accuracy_test(&X, |x: f64| x.exp(), exp);
     }
 
     #[test]
-    fn test_exp_simd() {
-        let xs = [PI * 2.0, PI, -PI * 4.0, 1.78, PI * 8.0, 0.5, 1.0, -1.0];
+    fn test_exp_simd_accuracy() {
+        accuracy_test_simd(X, |x: f64| (-x * x).exp(), |x| exp_simd(-x * x));
+    }
 
+    #[test]
+    fn test_exp_simd_speed() {
         const ITERS: usize = 1000000;
 
         speed_test_simd_iterated(
-            xs,
+            X,
             |x: f64| (-x * x).exp(),
             |x| exp_simd(-x * x),
             ITERS,

@@ -125,43 +125,37 @@ mod tests {
     use std::simd::Simd;
 
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated},
+        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         *,
     };
 
-    #[test]
-    fn test_ln_small() {
-        let x: [f64; 8] = [
-            5.155388558913315,
-            1963.561314768797,
-            18138.072812963892,
-            0.005506141006060214,
-            0.8485974262673789,
-            3236.7191093391725,
-            0.5895235440367635,
-            16.565388066382837,
-        ];
+    const X: [f64; 8] = [
+        5.155388558913315,
+        1963.561314768797,
+        18138.072812963892,
+        0.005506141006060214,
+        0.8485974262673789,
+        3236.7191093391725,
+        0.5895235440367635,
+        16.565388066382837,
+    ];
 
-        accuracy_test(&x, |x| x.ln(), ln);
+    #[test]
+    fn test_ln() {
+        accuracy_test(&X, |x| x.ln(), ln);
     }
 
     #[test]
     fn test_ln_simd() {
-        let x: [f64; 8] = [
-            5.155388558913315,
-            1963.561314768797,
-            18138.072812963892,
-            0.005506141006060214,
-            0.8485974262673789,
-            3236.7191093391725,
-            0.5895235440367635,
-            16.565388066382837,
-        ];
+        accuracy_test_simd(X, |x| x.ln(), ln_simd);
+    }
 
+    #[test]
+    fn test_ln_simd_speed() {
         const ITERS: usize = 1000000;
 
         speed_test_simd_iterated(
-            x,
+            X,
             |x| (x + 1.0).ln(),
             |x| ln_simd(x + Simd::splat(1.0)),
             ITERS,

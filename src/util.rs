@@ -165,6 +165,42 @@ pub mod tests {
         print_array(&rdiff2);
     }
 
+    pub fn accuracy_test_simd<
+        const LANES: usize,
+        F1: Fn(f64) -> f64 + Copy,
+        F2: Fn(Simd<f64, LANES>) -> Simd<f64, LANES>,
+    >(
+        x: [f64; LANES],
+        f_std: F1,
+        f_lib: F2,
+    ) where
+        LaneCount<LANES>: SupportedLaneCount,
+    {
+        let y_std = x.map(f_std);
+        let y_lib = f_lib(Simd::from(x)).to_array();
+
+        let diff: Vec<_> =
+            y_std.iter().zip(&y_lib).map(|(a, b)| a - b).collect();
+
+        let rdiff: Vec<_> =
+            diff.iter().zip(&y_std).map(|(a, b)| a / b).collect();
+
+        let rdiff2: Vec<_> = diff.iter().zip(x).map(|(a, b)| a / b).collect();
+
+        print!("x:     ");
+        print_array(&x);
+        print!("y_std: ");
+        print_array(&y_std);
+        print!("y_lib: ");
+        print_array(&y_lib);
+        print!("adiff: ");
+        print_array(&diff);
+        print!("rodiff:");
+        print_array(&rdiff);
+        print!("ridiff:");
+        print_array(&rdiff2);
+    }
+
     pub fn speed_test_simd_iterated<
         const LANES: usize,
         F1: Fn(f64) -> f64 + Copy,

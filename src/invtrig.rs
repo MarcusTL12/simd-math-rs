@@ -89,41 +89,35 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated},
+        tests::{accuracy_test, speed_test_simd_iterated, accuracy_test_simd},
         *,
     };
 
+    const X: [f64; 8] = [
+        -6.470329170669899,
+        7.608185328297425,
+        3.03226005318477,
+        1.6990497408119154,
+        -5.422265238742455,
+        -3.9968940734442704,
+        5.683523314814294,
+        -4.318069330898973,
+    ];
+
     #[test]
     fn test_atan() {
-        let x: [f64; 8] = [
-            -6.470329170669899,
-            7.608185328297425,
-            3.03226005318477,
-            1.6990497408119154,
-            -5.422265238742455,
-            -3.9968940734442704,
-            5.683523314814294,
-            -4.318069330898973,
-        ];
-
-        accuracy_test(&x, |x| x.atan(), atan);
+        accuracy_test(&X, |x| x.atan(), atan);
     }
 
     #[test]
     fn test_atan_simd() {
-        let x: [f64; 8] = [
-            -6.470329170669899,
-            7.608185328297425,
-            3.03226005318477,
-            1.6990497408119154,
-            -5.422265238742455,
-            -3.9968940734442704,
-            5.683523314814294,
-            -4.318069330898973,
-        ];
+        accuracy_test_simd(X, |x| x.atan(), atan_simd);
+    }
 
-        const ITERS: usize = 10000000;
+    #[test]
+    fn test_atan_simd_speed() {
+        const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(x, |x| x.atan(), atan_simd, ITERS);
+        speed_test_simd_iterated(X, |x| x.atan(), atan_simd, ITERS);
     }
 }
