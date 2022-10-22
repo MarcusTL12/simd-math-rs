@@ -49,6 +49,7 @@ mod tests {
     use std::f64::consts::PI;
 
     use crate::{
+        simdfloatmath_trait::SimdFloatMath,
         tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         *,
     };
@@ -63,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_exp_simd() {
-        accuracy_test_simd(X, |x: f64| (-x * x).exp(), |x| exp_simd(-x * x));
+        accuracy_test_simd(X, |x: f64| x.exp(), |x| x.exp());
     }
 
     #[test]
@@ -73,7 +74,7 @@ mod tests {
         speed_test_simd_iterated(
             X,
             |x: f64| (-x * x).exp(),
-            |x| exp_simd(-x * x),
+            |x| (-x * x).exp(),
             ITERS,
         );
     }

@@ -14,3 +14,5 @@ pub use invtrig::*;
 
 mod log;
 pub use log::*;
+
+mod simdfloatmath_trait;
