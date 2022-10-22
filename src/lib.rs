@@ -11,3 +11,6 @@ pub use trig::*;
 
 mod invtrig;
 pub use invtrig::*;
+
+mod log;
+pub use log::*;
