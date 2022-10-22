@@ -134,7 +134,10 @@ mod tests {
     use std::simd::Simd;
 
     use crate::{
-        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated, print_array},
+        tests::{
+            accuracy_test, accuracy_test_simd, print_array,
+            speed_test_simd_iterated,
+        },
         *,
     };
 
