@@ -16,3 +16,4 @@ mod log;
 pub use log::*;
 
 mod simdfloatmath_trait;
+pub use simdfloatmath_trait::SimdFloatMath;

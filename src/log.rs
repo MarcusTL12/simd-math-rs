@@ -104,13 +104,13 @@ where
         n.abs().cast(),
     );
 
-    let ssq2 = x;
-    let x = x * x
+    let ssq2 = x - Simd::splat(1.0);
+    let x = x * ssq2
         .is_sign_positive()
         .select(Simd::splat(SQRT2_INV), Simd::splat(SQRT2));
 
-    let s2p4 = x;
-    let x = x * x
+    let s2p4 = x - Simd::splat(1.0);
+    let x = x * s2p4
         .is_sign_positive()
         .select(Simd::splat(TWOPOW4TH_INV), Simd::splat(TWOPOW4TH));
 
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_ln_simd() {
-        accuracy_test_simd(X, |x| x.ln(), ln_simd);
+        accuracy_test_simd(X, |x| x.ln(), |x| x.ln());
     }
 
     #[test]
@@ -157,7 +157,7 @@ mod tests {
         speed_test_simd_iterated(
             X,
             |x| (x + 1.0).ln(),
-            |x| ln_simd(x + Simd::splat(1.0)),
+            |x| (x + Simd::splat(1.0)).ln(),
             ITERS,
         );
     }

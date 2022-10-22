@@ -89,7 +89,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated, accuracy_test_simd},
+        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         *,
     };
 
@@ -111,13 +111,13 @@ mod tests {
 
     #[test]
     fn test_atan_simd() {
-        accuracy_test_simd(X, |x| x.atan(), atan_simd);
+        accuracy_test_simd(X, |x| x.atan(), |x| x.atan());
     }
 
     #[test]
     fn test_atan_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(X, |x| x.atan(), atan_simd, ITERS);
+        speed_test_simd_iterated(X, |x| x.atan(), |x| x.atan(), ITERS);
     }
 }

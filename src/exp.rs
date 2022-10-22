@@ -49,7 +49,6 @@ mod tests {
     use std::f64::consts::PI;
 
     use crate::{
-        simdfloatmath_trait::SimdFloatMath,
         tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         *,
     };

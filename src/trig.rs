@@ -94,7 +94,7 @@ mod tests {
     use std::f64::consts::PI;
 
     use crate::{
-        tests::{accuracy_test, speed_test_simd_iterated, accuracy_test_simd},
+        tests::{accuracy_test, accuracy_test_simd, speed_test_simd_iterated},
         trig::sin_shift,
         *,
     };
@@ -111,15 +111,15 @@ mod tests {
     ];
 
     const X_LARGE: [f64; 8] = [
-            -673.1445111913359,
-            -4194.129748644129,
-            2812.623289566699,
-            -4882.861762124198,
-            1815.6590613844326,
-            -4318.334861343217,
-            2955.7357268745563,
-            2267.811391833918,
-        ];
+        -673.1445111913359,
+        -4194.129748644129,
+        2812.623289566699,
+        -4882.861762124198,
+        1815.6590613844326,
+        -4318.334861343217,
+        2955.7357268745563,
+        2267.811391833918,
+    ];
 
     #[test]
     fn test_sin_shift() {
@@ -157,40 +157,40 @@ mod tests {
 
     #[test]
     fn test_sin_simd() {
-        accuracy_test_simd(X_SMALL, |x| x.sin(), sin_simd);
-        accuracy_test_simd(X_LARGE, |x| x.sin(), sin_simd);
+        accuracy_test_simd(X_SMALL, |x| x.sin(), |x| x.sin());
+        accuracy_test_simd(X_LARGE, |x| x.sin(), |x| x.sin());
     }
 
     #[test]
     fn test_cos_simd() {
-        accuracy_test_simd(X_SMALL, |x| x.cos(), cos_simd);
-        accuracy_test_simd(X_LARGE, |x| x.cos(), cos_simd);
+        accuracy_test_simd(X_SMALL, |x| x.cos(), |x| x.cos());
+        accuracy_test_simd(X_LARGE, |x| x.cos(), |x| x.cos());
     }
 
     #[test]
     fn test_tan_simd() {
-        accuracy_test_simd(X_SMALL, |x| x.tan(), tan_simd);
-        accuracy_test_simd(X_LARGE, |x| x.tan(), tan_simd);
+        accuracy_test_simd(X_SMALL, |x| x.tan(), |x| x.tan());
+        accuracy_test_simd(X_LARGE, |x| x.tan(), |x| x.tan());
     }
 
     #[test]
     fn test_sin_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(X_SMALL, |x| x.sin(), sin_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.sin(), |x| x.sin(), ITERS);
     }
 
     #[test]
     fn test_cos_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(X_SMALL, |x| x.cos(), cos_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.cos(), |x| x.cos(), ITERS);
     }
 
     #[test]
     fn test_tan_simd_speed() {
         const ITERS: usize = 1000000;
 
-        speed_test_simd_iterated(X_SMALL, |x| x.tan(), tan_simd, ITERS);
+        speed_test_simd_iterated(X_SMALL, |x| x.tan(), |x| x.tan(), ITERS);
     }
 }
