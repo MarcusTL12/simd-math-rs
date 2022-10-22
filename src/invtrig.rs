@@ -1,4 +1,9 @@
-use std::simd::{LaneCount, Simd, SimdFloat, StdFloat, SupportedLaneCount};
+use std::{
+    f64::{consts::PI, NAN},
+    simd::{
+        LaneCount, Simd, SimdFloat, SimdPartialEq, StdFloat, SupportedLaneCount,
+    },
+};
 
 use crate::{polyval, polyval_simd};
 
@@ -53,6 +58,26 @@ pub fn atan(x: f64) -> f64 {
     p0
 }
 
+pub fn atan2(y: f64, x: f64) -> f64 {
+    if x != 0.0 {
+        let atanyx = (y / x).atan();
+
+        if x > 0.0 {
+            atanyx
+        } else if y.is_sign_positive() {
+            atanyx + PI
+        } else {
+            atanyx - PI
+        }
+    } else if y > 0.0 {
+        PI / 2.0
+    } else if y < 0.0 {
+        -PI / 2.0
+    } else {
+        NAN
+    }
+}
+
 #[inline(always)]
 pub fn atan_simd<const LANES: usize>(x: Simd<f64, LANES>) -> Simd<f64, LANES>
 where
@@ -84,6 +109,24 @@ where
     let p0 = p1.copysign(s0);
 
     p0
+}
+
+#[inline(always)]
+pub fn atan2_simd<const LANES: usize>(
+    y: Simd<f64, LANES>,
+    x: Simd<f64, LANES>,
+) -> Simd<f64, LANES>
+where
+    LaneCount<LANES>: SupportedLaneCount,
+{
+    let atanyx = atan_simd(y / x);
+
+    x.simd_eq(Simd::splat(0.0)).select(
+        Simd::splat(PI / 2.0).copysign(y),
+        atanyx
+            + x.is_sign_positive()
+                .select(Simd::splat(0.0), Simd::splat(PI).copysign(y)),
+    )
 }
 
 #[cfg(test)]
