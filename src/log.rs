@@ -1,4 +1,7 @@
-use std::simd::{LaneCount, Simd, SimdFloat, SimdInt, SupportedLaneCount};
+use std::{
+    f64::consts::{FRAC_1_SQRT_2, LN_2, SQRT_2},
+    simd::{prelude::*, LaneCount, Simd, SupportedLaneCount},
+};
 
 use crate::{polyval, polyval_simd, powi_simd_pos};
 
@@ -25,12 +28,8 @@ const TAYLOR: [f64; 18] = [
     -7.458340731200207e-155,
 ];
 
-const LN2: f64 = 0.6931471805599453;
 const LNSQRT2: f64 = 0.34657359027997264;
 const LN2POW4TH: f64 = 0.17328679513998632;
-
-const SQRT2: f64 = 1.4142135623730951;
-const SQRT2_INV: f64 = 0.7071067811865476;
 
 const TWOPOW4TH: f64 = 1.189207115002721;
 const TWOPOW4TH_INV: f64 = 0.8408964152537145;
@@ -38,7 +37,7 @@ const TWOPOW4TH_INV: f64 = 0.8408964152537145;
 fn fake_log2(x: f64) -> i32 {
     const MASK: u64 = 0x7ff0000000000000;
 
-    let x: u64 = unsafe { std::mem::transmute(x) };
+    let x: u64 = x.to_bits();
 
     let exp2 = (x & MASK) >> 52;
 
@@ -53,9 +52,9 @@ pub fn ln(x: f64) -> f64 {
     let x = x * 2f64.powi(-n);
 
     let (nsq2, fsq2) = if x > 1.0 {
-        (1.0, SQRT2_INV)
+        (1.0, FRAC_1_SQRT_2)
     } else {
-        (-1.0, SQRT2)
+        (-1.0, SQRT_2)
     };
 
     let x = x * fsq2;
@@ -69,7 +68,7 @@ pub fn ln(x: f64) -> f64 {
     let x = x * f2p4;
 
     polyval(&TAYLOR, x - 1.0)
-        + (n as f64) * LN2
+        + (n as f64) * LN_2
         + nsq2 * LNSQRT2
         + n2p4 * LN2POW4TH
 }
@@ -107,7 +106,7 @@ where
     let ssq2 = x - Simd::splat(1.0);
     let x = x * ssq2
         .is_sign_positive()
-        .select(Simd::splat(SQRT2_INV), Simd::splat(SQRT2));
+        .select(Simd::splat(FRAC_1_SQRT_2), Simd::splat(SQRT_2));
 
     let s2p4 = x - Simd::splat(1.0);
     let x = x * s2p4
@@ -115,7 +114,7 @@ where
         .select(Simd::splat(TWOPOW4TH_INV), Simd::splat(TWOPOW4TH));
 
     polyval_simd(&TAYLOR, x - Simd::splat(1.0))
-        + n.cast() * Simd::splat(LN2)
+        + n.cast() * Simd::splat(LN_2)
         + Simd::splat(LNSQRT2).copysign(ssq2)
         + Simd::splat(LN2POW4TH).copysign(s2p4)
 }

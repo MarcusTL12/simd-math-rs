@@ -1,6 +1,6 @@
 use std::{
-    f64::consts::PI,
-    simd::{LaneCount, Simd, SimdPartialEq, SupportedLaneCount},
+    f64::consts::{FRAC_1_SQRT_2, PI},
+    simd::{prelude::*, LaneCount, SupportedLaneCount},
 };
 
 use crate::{periodic_clamp, periodic_clamp_simd, polyval, polyval_simd};
@@ -20,8 +20,8 @@ const TAYLOR_COEFFS: [f64; 16] = [
     0.02946278254943948,
     -0.11785113019775792,
     -0.3535533905932738,
-    0.7071067811865476,
-    0.7071067811865476,
+    FRAC_1_SQRT_2,
+    FRAC_1_SQRT_2,
 ];
 
 fn sin_shift(x: f64) -> f64 {

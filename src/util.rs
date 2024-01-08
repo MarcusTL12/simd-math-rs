@@ -1,7 +1,4 @@
-use std::simd::{
-    LaneCount, Simd, SimdFloat, SimdInt, SimdPartialEq, StdFloat,
-    SupportedLaneCount,
-};
+use std::simd::{prelude::*, LaneCount, StdFloat, SupportedLaneCount};
 
 #[inline(always)]
 pub fn periodic_clamp(x: f64, a: f64) -> (f64, i32) {
@@ -20,7 +17,7 @@ where
     let n = unsafe {
         (x / Simd::splat(a) + Simd::splat(0.5).copysign(x)).to_int_unchecked()
     };
-    (x - (n.cast()) * Simd::splat(a), n)
+    (x - (SimdInt::cast::<f64>(n)) * Simd::splat(a), n)
 }
 
 pub fn powi(x: f64, n: i32) -> f64 {

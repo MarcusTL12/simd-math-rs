@@ -1,4 +1,4 @@
-use std::simd::SimdFloat;
+use std::simd::prelude::*;
 
 mod f64;
 

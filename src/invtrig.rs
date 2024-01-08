@@ -1,8 +1,9 @@
 use std::{
-    f64::{consts::PI, NAN},
-    simd::{
-        LaneCount, Simd, SimdFloat, SimdPartialEq, StdFloat, SupportedLaneCount,
+    f64::{
+        consts::{FRAC_PI_4, PI},
+        NAN,
     },
+    simd::{prelude::*, LaneCount, Simd, StdFloat, SupportedLaneCount},
 };
 
 use crate::{polyval, polyval_simd};
@@ -28,7 +29,7 @@ const TAYLOR: [f64; 15] = [
 
 const TAN_4: f64 = 0.24497866312686414;
 const TAN_2: f64 = 0.4636476090008061;
-const TAN_1: f64 = 0.7853981633974483;
+const TAN_1: f64 = FRAC_PI_4;
 
 pub fn atan(x: f64) -> f64 {
     fn s(x: f64, n: i32) -> f64 {
@@ -53,9 +54,8 @@ pub fn atan(x: f64) -> f64 {
     let p3 = atx3.copysign(s3) + TAN_4;
     let p2 = p3.copysign(s2) + TAN_2;
     let p1 = p2.copysign(s1) + TAN_1;
-    let p0 = p1.copysign(s0);
 
-    p0
+    p1.copysign(s0)
 }
 
 pub fn atan2(y: f64, x: f64) -> f64 {
@@ -106,9 +106,8 @@ where
     let p3 = atx3.copysign(s3) + Simd::splat(TAN_4);
     let p2 = p3.copysign(s2) + Simd::splat(TAN_2);
     let p1 = p2.copysign(s1) + Simd::splat(TAN_1);
-    let p0 = p1.copysign(s0);
 
-    p0
+    p1.copysign(s0)
 }
 
 #[inline(always)]
